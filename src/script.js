@@ -18,19 +18,66 @@ const scene = new THREE.Scene();
 
 // Loaders
 const textureLoader = new THREE.TextureLoader();
+const earthDayTexture = textureLoader.load('./earth/day.jpg');
+earthDayTexture.anisotropy = 8;
+
+earthDayTexture.colorSpace = THREE.SRGBColorSpace;
+const earthNightTexture = textureLoader.load('./earth/night.jpg');
+earthNightTexture.anisotropy = 8;
+
+earthNightTexture.colorSpace = THREE.SRGBColorSpace;
+const earthSpecularCloudsTexture = textureLoader.load('./earth/specularClouds.jpg');
+earthSpecularCloudsTexture.anisotropy = 8;
 
 /**
  * Earth
  */
+const earthParameters = {};
+earthParameters.atmosphereDayColor = '#00aaff';
+earthParameters.atmosphereTwilightColor = '#ff6000';
+
 // Mesh
 const earthGeometry = new THREE.SphereGeometry(2, 64, 64);
 const earthMaterial = new THREE.ShaderMaterial({
 	vertexShader: earthVertexShader,
 	fragmentShader: earthFragmentShader,
-	uniforms: {},
+	uniforms: {
+		uDayTexture: new THREE.Uniform(earthDayTexture),
+		uNightTexture: new THREE.Uniform(earthNightTexture),
+		uSpecularCloudsTexture: new THREE.Uniform(earthSpecularCloudsTexture),
+		uSunDirection: new THREE.Uniform(new THREE.Vector3(0, 0, 1)),
+		uAtmosphereDayColor: new THREE.Uniform(new THREE.Color(earthParameters.atmosphereDayColor)),
+		uAtmosphereTwilightColor: new THREE.Uniform(new THREE.Color(earthParameters.atmosphereTwilightColor)),
+	},
 });
 const earth = new THREE.Mesh(earthGeometry, earthMaterial);
 scene.add(earth);
+
+// Sun
+const sunSpherical = new THREE.Spherical(1, Math.PI * 0.5, 0.5);
+const sunDirection = new THREE.Vector3();
+
+// Debug
+const debugSun = new THREE.Mesh(new THREE.IcosahedronGeometry(0.1, 2), new THREE.MeshBasicMaterial());
+scene.add(debugSun);
+
+// Update
+const updateSun = () => {
+	// Sun direction
+	sunDirection.setFromSpherical(sunSpherical);
+
+	// Debug
+	debugSun.position.copy(sunDirection).multiplyScalar(5);
+
+	// Uniforms
+	earthMaterial.uniforms.uSunDirection.value.copy(sunDirection);
+};
+
+updateSun();
+
+// Tweaks
+gui.add(sunSpherical, 'phi').min(0).max(Math.PI).onChange(updateSun);
+gui.add(sunSpherical, 'theta').min(-Math.PI).max(Math.PI).onChange(updateSun);
 
 /**
  * Sizes
